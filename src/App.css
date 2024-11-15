@@ -1,17 +1,209 @@
-.App {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+*{
+  padding: 0;
+  margin: 0;
 }
 
-.App .header {
+.App{
+  height: 100vh;
+  overflow: auto;
+}
+
+.mic{
+margin-top: 5px;
+}
+
+.popup{
+  display: flex;
+  justify-content: center ;
+  gap: 5px;
+}
+
+
+
+.mic-btn{
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  width: 40px;
+  height: 40px;
+}
+
+
+.preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+
   width: 100%;
-  height: 60px;
-  padding: 8px 8px 8px 16px;
-  box-sizing: border-box;
-  background: #00a5e4;
-  font-size: 1.2em;
-  line-height: 44px;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.preview-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  min-width: 500px;
+  min-height: 700px;
+  max-width: 700px;
+  max-height: 90%;
+  overflow-y: auto;
+}
+
+.close-preview {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: red;
   color: white;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+}
+
+
+/* Thumbnail styles for A4 alignment */
+.thumbnail-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  max-height: 100vh;
+  width: 200px; /* Adjust width as per your requirement */
+  padding: 5px;
+  border-right: 1px solid #ddd;
+  background-color: #f9f9f9;
+}
+
+.thumbnail-page {
+  width: 100%;
+  height: 150px; /* Aspect ratio for A4-size preview */
+  overflow: hidden;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: white;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+  font-size: 10px; /* Adjust to fit thumbnail scale */
+  line-height: 1.5;
+}
+
+.thumbnail-page-content {
+  white-space: pre-wrap;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Popup overlay */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.documents-container {
+  padding: 20px;
+}
+
+.documents-list {
+  list-style: none;
+  padding: 0;
+}
+
+.document-item {
+  margin: 10px 0;
+}
+
+.document-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.document-button:hover {
+  background-color: #e9e9e9;
+}
+
+
+.file-name-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5); /* Dark background with transparency */
+  z-index: 9999;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.modal-content h2 {
+  margin-bottom: 15px;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.modal-content button {
+  padding: 10px 20px;
+  margin: 5px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-content button:hover {
+  background-color: #0056b3;
+}
+
+.modal-content button:last-child {
+  background-color: #f44336;
+}
+
+.modal-content button:last-child:hover {
+  background-color: #d32f2f;
 }

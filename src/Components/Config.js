@@ -1,0 +1,1 @@
+export const baseUrl = 'https://editor-backend-idta.onrender.com';
