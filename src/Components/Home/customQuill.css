@@ -1,0 +1,15 @@
+/* customQuill.css */
+.ql-container {
+    font-family: 'Arial', sans-serif;
+    background-color: #f9f9f9;
+    border: 2px solid #ddd;
+  }
+  
+  .ql-toolbar {
+    background-color: #e0e0e0;
+    border-radius: 5px;
+  }
+  
+  .ql-editor{
+    line-height: 2.2;
+  }

@@ -1,5 +1,3 @@
-
-// MyDocument.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -32,7 +30,7 @@ const MyDocument = () => {
         state: {
           documentContent: response.data.content,
           documentName: docName,
-          documentId: docId // Pass the document ID
+          documentId: docId
         }
       });
     } catch (error) {
@@ -40,6 +38,19 @@ const MyDocument = () => {
       alert('Error loading document: ' + error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (docId) => {
+    if (window.confirm('Are you sure you want to delete this document?')) {
+      try {
+        await axios.delete(`${baseUrl}/api/documents/${docId}`);
+        setDocuments(prevDocs => prevDocs.filter(doc => doc._id !== docId));
+        alert('Document deleted successfully.');
+      } catch (error) {
+        console.error('Error deleting document:', error);
+        alert('Error deleting document: ' + error.message);
+      }
     }
   };
 
@@ -59,6 +70,12 @@ const MyDocument = () => {
                   className="document-button"
                 >
                   {doc.name || 'Untitled Document'}
+                </button>
+                <button
+                  onClick={() => handleDelete(doc._id)}
+                  className="document-button delete-button"
+                >
+                  Delete
                 </button>
               </li>
             ))}

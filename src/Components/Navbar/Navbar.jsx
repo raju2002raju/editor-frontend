@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';  // Import Link and useLocation
+import { useNavigate, Link, useLocation } from 'react-router-dom'; 
 import axios from 'axios';
 import { baseUrl } from '../Config';
 
 export const Navbar = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Get the current location for active link styling
-  const [error, setError] = useState();
+  const location = useLocation(); 
+  const [setError] = useState();
 
   const handleLogout = async () => {
     try {
@@ -62,3 +62,5 @@ export const Navbar = () => {
     </nav>
   );
 };
+
+

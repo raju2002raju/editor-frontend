@@ -1,102 +1,175 @@
 import React, { useRef, useState, forwardRef, useEffect } from 'react';
-import JoditEditor from 'jodit-react';
 import { Eye, FileText, Mic, Save, StopCircle } from 'lucide-react';
-import {Navbar} from '../Navbar/Navbar';
+import { Navbar } from '../Navbar/Navbar';
 import { baseUrl } from '../Config';
 import { useLocation } from 'react-router-dom';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import 'react-quill/dist/quill.snow.css'; // Default React Quill theme
+import './customQuill.css'; // Your custom CSS
 
 
 const Home = forwardRef(() => {
+  const quillRef = useRef(null);
   const location = useLocation();
-  const [transcripts, setTranscripts] = useState('');
-  const editor = useRef(null);
-  const [content, setContent] = useState('');
-  const [isPreviewVisible, setIsPreviewVisible] = useState(false); 
-  const [isEditorVisible, setEditorVisible] = useState(false);
-  const [output, setOutput] = useState('');
+  const [allContent, setAllContent] = useState('');  
+  const [pages, setPages] = useState([]); 
+  const [selectedPage, setSelectedPage] = useState(0);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [fileName, setFileName] = useState('');
-const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
-  const [error, setError] = useState(null);
+  const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentDocId, setCurrentDocId] = useState(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
-  const pageRefs = useRef([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentDocId, setCurrentDocId] = useState(null); // Store current document ID
 
-  // Update content whenever output changes
-  useEffect(() => {
-    if (output) {
-      setContent(output);
-    }
-  }, [output]);
-
+  // Initialize content from location state
   useEffect(() => {
     if (location.state?.documentContent) {
-      setContent(location.state.documentContent);
+      setAllContent(location.state.documentContent);
       setFileName(location.state.documentName || '');
-      setCurrentDocId(location.state.documentId); // Store the document ID
+      setCurrentDocId(location.state.documentId);
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
-    // Toggle preview visibility
-    const handlePreviewClick = () => {
-      setIsPreviewVisible(!isPreviewVisible);
-    };
+  // Function to split content into pages
+  const splitContentIntoPages = (htmlContent) => {
+    if (!htmlContent) return [];
 
-    const handleExportToDoc = () => {
-      const htmlContent = `
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <title>Exported Document</title>
-          </head>
-          <body>
-            ${content}
-          </body>
-        </html>
-      `;
-  
-      const blob = new Blob(['\ufeff', htmlContent], {
-        type: 'application/msword'
-      });
-      const url = URL.createObjectURL(blob);
-  
-      // Create a temporary link to trigger the download
-      const downloadLink = document.createElement('a');
-      downloadLink.href = url;
-      downloadLink.download = 'document.doc';
-      downloadLink.click();
-  
-      // Clean up the URL object after download
-      URL.revokeObjectURL(url);
-    };
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    tempDiv.style.width = '600px';  // A4 width
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.top = '-9999px';
+    document.body.appendChild(tempDiv);
 
-    const splitContentIntoPages = (content) => {
-      const pageHeight = 1123; // Approx height for A4 in pixels at 96 DPI
-      let pages = [];
-      let currentPageContent = '';
-    
-      // Simulate adding lines until the height is close to the page height
-      content.split('\n').forEach(line => {
-        currentPageContent += line + '\n';
-        if (currentPageContent.length >= pageHeight) {
+    const pages = [];
+    let currentPageContent = '';
+    let currentHeight = 0;
+    const MAX_PAGE_HEIGHT = 800;
+
+    Array.from(tempDiv.children).forEach(child => {
+      const childHeight = child.scrollHeight;
+
+      if (currentHeight + childHeight > MAX_PAGE_HEIGHT) {
+        if (currentPageContent.trim()) {
           pages.push(currentPageContent);
-          currentPageContent = ''; // Reset for the next page
         }
-      });
-    
-      if (currentPageContent) pages.push(currentPageContent); // Add remaining content
-      return pages;
-    };
-    
-    // On change, split the content into pages
-    const pages = splitContentIntoPages(content);
+        currentPageContent = child.outerHTML;
+        currentHeight = childHeight;
+      } else {
+        currentPageContent += child.outerHTML;
+        currentHeight += childHeight;
+      }
+    });
 
-  // Recording functionality
+    if (currentPageContent.trim()) {
+      pages.push(currentPageContent);
+    }
+
+    document.body.removeChild(tempDiv);
+    return pages.length > 0 ? pages : [''];  // Ensure at least one page exists
+  };
+
+  // Update pages when content changes
+  useEffect(() => {
+    const splitPages = splitContentIntoPages(allContent);
+    setPages(splitPages);
+  }, [allContent]);
+
+  // Handle editor content change
+  const handleEditorChange = (newContent) => {
+    // Update the content of the current page
+    const updatedPages = [...pages];
+    updatedPages[selectedPage] = newContent;
+
+    // Combine all pages into complete document
+    const combinedContent = updatedPages.join('');
+    setAllContent(combinedContent);
+
+    // Re-split content into pages to maintain proper page breaks
+    const newPages = splitContentIntoPages(combinedContent);
+    setPages(newPages);
+  };
+
+  // Handle text selection
+  const handleTextSelection = () => {
+    if (quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      const range = editor.getSelection();
+      if (range) {
+        const text = editor.getText(range.index, range.length);
+        if (text) {
+          console.log('Selected Text:', text);
+        }
+      }
+    }
+  };
+
+  // Set up text selection listener
+  useEffect(() => {
+    const editor = quillRef.current?.getEditor();
+    if (editor) {
+      editor.on('selection-change', handleTextSelection);
+    }
+    return () => {
+      if (editor) {
+        editor.off('selection-change', handleTextSelection);
+      }
+    };
+  }, []);
+
+  // Handle page selection
+  const handlePageSelect = (index) => {
+    setSelectedPage(index);
+  };
+
+  // Export to Word document
+  const handleExportToDoc = () => {
+    const styleContent = `
+      <style>
+        table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f5f5f5; }
+        h1, h2, h3, h4, h5, h6 { margin: 1em 0 0.5em 0; }
+        ul, ol { margin: 1em 0; padding-left: 2em; }
+        p { margin: 1em 0; }
+        .ql-align-center { text-align: center; }
+        .ql-align-right { text-align: right; }
+        .ql-align-justify { text-align: justify; }
+      </style>
+    `;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Exported Document</title>
+          ${styleContent}
+        </head>
+        <body>
+          ${allContent}
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff', htmlContent], {
+      type: 'application/msword'
+    });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = 'document.doc';
+    downloadLink.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Recording functions
   const startTimer = () => {
     timerRef.current = setInterval(() => {
       setRecordingTime(prev => prev + 1);
@@ -122,21 +195,21 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
           autoGainControl: true
         }
       });
-  
+
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm',
         audioBitsPerSecond: 128000
       });
-  
+
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
-  
+
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
       };
-  
+
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
         const wavBlob = await convertToWav(audioBlob);
@@ -144,7 +217,7 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
         stream.getTracks().forEach(track => track.stop());
         stopTimer();
       };
-  
+
       mediaRecorder.start(1000);
       setIsRecording(true);
       startTimer();
@@ -153,7 +226,37 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
       alert('Error accessing microphone. Please check permissions.');
     }
   };
-  
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Process and update content from AI response
+  const processAndUpdateContent = (aiResponse) => {
+    try {
+      const editor = quillRef.current.getEditor();
+      const selection = editor.getSelection();
+      
+      if (selection) {
+        editor.deleteText(selection.index, selection.length);
+        editor.insertText(selection.index, aiResponse);
+      } else {
+        const length = editor.getLength();
+        editor.insertText(length - 1, '\n' + aiResponse);
+      }
+      
+      // Update the content of the current page
+      const newContent = editor.root.innerHTML;
+      handleEditorChange(newContent);
+    } catch (error) {
+      console.error('Error processing content update:', error);
+    }
+  };
+
+  // Audio processing functions
   const convertToWav = async (webmBlob) => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)({
       sampleRate: 16000
@@ -161,12 +264,7 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
     const arrayBuffer = await webmBlob.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
   
-    const wavBuffer = audioContext.createBuffer(
-      1,
-      audioBuffer.length,
-      16000
-    );
-  
+    const wavBuffer = audioContext.createBuffer(1, audioBuffer.length, 16000);
     wavBuffer.copyToChannel(audioBuffer.getChannelData(0), 0);
   
     const wavBlob = await new Promise(resolve => {
@@ -184,7 +282,7 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
   
     return wavBlob;
   };
-  
+
   const createWaveFileData = (audioBuffer) => {
     const frameLength = audioBuffer.length;
     const numberOfChannels = audioBuffer.numberOfChannels;
@@ -197,6 +295,12 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
     const totalLength = headerByteLength + wavDataByteLength;
     const waveFileData = new Uint8Array(totalLength);
     const view = new DataView(waveFileData.buffer);
+  
+    const writeString = (view, offset, string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
   
     writeString(view, 0, 'RIFF');
     view.setUint32(4, 36 + wavDataByteLength, true);
@@ -222,28 +326,23 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
   
     return waveFileData;
   };
-  
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-  
-  const writeString = (view, offset, string) => {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  };
-  
+
+  // Send audio to backend
   const sendAudioToBackend = async (audioBlob) => {
     try {
       const formData = new FormData();
       formData.append('audio', new File([audioBlob], 'recording.wav', { type: 'audio/wav' }));
+      
+      const editor = quillRef.current.getEditor();
+      const selection = editor.getSelection();
+      if (selection) {
+        const selectedText = editor.getText(selection.index, selection.length);
+        formData.append('selectedText', selectedText);
+      }
 
       const response = await fetch(`${baseUrl}/api/asr`, {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
@@ -251,21 +350,16 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
       }
 
       const data = await response.json();
-
-      if (data.transcript) {
-        setTranscripts((prevTranscripts) => `${prevTranscripts ? prevTranscripts + '\n' : ''}${data.transcript}`);
-        setContent((prevContent) => `${prevContent ? prevContent + '\n' : ''}${data.transcript}`);
-        setEditorVisible(true);
-      } else {
-        throw new Error('No transcript received');
+      if (data.chatResponse.mergedText) {
+        processAndUpdateContent(data.chatResponse.mergedText);
       }
     } catch (error) {
       console.error('Error sending audio to ASR:', error);
-      setError('Error processing audio: ' + error.message);
+      alert('Error processing audio: ' + error.message);
     }
   };
 
-
+  // Save document
   const handleSave = async () => {
     if (!fileName) {
       setIsFileNameModalVisible(true);
@@ -274,27 +368,26 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
 
     try {
       setIsLoading(true);
-      const endpoint = currentDocId 
-        ? `${baseUrl}/api/documents/${currentDocId}` // Update existing document
-        : `${baseUrl}/api/store-document`;           // Create new document
-      
+      const endpoint = currentDocId
+        ? `${baseUrl}/api/documents/${currentDocId}`
+        : `${baseUrl}/api/store-document`;
+
       const method = currentDocId ? 'PUT' : 'POST';
-      
+
       const response = await fetch(endpoint, {
         method: method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          content, 
+        body: JSON.stringify({
+          content: allContent,
           fileName,
-          documentId: currentDocId 
+          documentId: currentDocId
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Update currentDocId if this was a new document
         if (!currentDocId) {
           setCurrentDocId(data.documentId);
         }
@@ -309,124 +402,151 @@ const [isFileNameModalVisible, setIsFileNameModalVisible] = useState(false);
       setIsLoading(false);
     }
   };
-  
-  const handleFileNameSubmit = () => {
-    if (fileName) {
-      setIsFileNameModalVisible(false); // Close the modal
-      handleSave(); // Trigger the save function with the file name
-    } else {
-      alert('Please enter a file name');
-    }
-  };
-  
-
-  const config = {
-    readonly: false,
-    height: 800,
-    width: 800,
-    uploader: {
-      insertImageAsBase64URI: true,
-    },
-    html: true,
-    toolbarButtons: [
-      'undo', 'redo', '|',
-      'bold', 'italic', 'underline', '|',
-      'ul', 'ol', '|',
-      'font', 'fontsize', 'paragraph', '|',
-      'align', '|',
-      'source'
-    ],
-    removeButtons: ['about'],
-    showCharsCounter: false,
-    showWordsCounter: false,
-    showXPathInStatusbar: false,
-  };
 
   return (
     <div className="form-field">
-  <Navbar />
-  {isLoading ? (
+      <Navbar />
+      {isLoading ? (
         <div className="loading-spinner">Loading...</div>
       ) : (
         <div className="popup">
-          <div className="editor-container">
-            <JoditEditor
-              ref={editor}
-              value={content}
-              config={config}
-              tabIndex={1}
-              onBlur={(newContent) => setContent(newContent)}
-              onChange={(newContent) => {}}
-            />
-          </div>
-          <div className='icons_container'>
-          <div className='icons'>
-            {!isRecording ? (
-              <div>
-                <button title='Start Recording'><Mic onClick={startRecording} className='mic-btn' /></button>
+          <div className="thumbnails-sidebar">
+            {pages.map((pageContent, index) => (
+              <div
+                key={index}
+                className={`thumbnail-page ${selectedPage === index ? 'selected' : ''}`}
+                onClick={() => handlePageSelect(index)}
+              >
+                <div className="page-number">Page {index + 1}</div>
+                <div 
+                 className="thumbnail-preview"
+                  dangerouslySetInnerHTML={{ __html: pageContent }}
+                />
               </div>
-            ) : (
-              <>
-                <div>
-                  <button title='Stop recording'><StopCircle onClick={stopRecording} className='mic-btn' /></button>
-                </div>
-              </>
-            )}
+            ))}
           </div>
 
-          {isRecording && (
-            <div className="recording-timer">
-              Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+          <div className="editor-container">
+            <ReactQuill
+              ref={quillRef}
+              value={pages[selectedPage] || ''}
+              onChange={handleEditorChange}
+              className="bg-gray-50 rounded-lg w-[800px] h-[600px] mb-12 "
+              modules={{
+                toolbar: [
+                  [{ 'header': [1, 2, 3, false] }],
+                  ['bold', 'italic', 'underline'],
+                  [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                  ['clean'],
+                  [{ align: '' }, { align: 'center' }, { align: 'right' }, { align: 'justify' }],
+                ]
+              }}
+            />
+          </div>
+
+          <div className="icons_container">
+            <div className="icons">
+             <div >
+             {!isRecording ? (
+                <button title="Start Recording" className="mic">
+                  <Mic onClick={startRecording} className="mic-btn" />
+                </button>
+              ) : (
+                <button title="Stop Recording" className="mic">
+                  <StopCircle onClick={stopRecording} className="mic-btn" />
+                </button>
+              )}
+
+              {isRecording && (
+                <div className="recording-timer">
+                  Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                </div>
+              )}
+             </div>
+
+              <button
+                onClick={handleSave}
+                className="mic"
+                title={currentDocId ? "Update Document" : "Save Document"}
+                disabled={isLoading}
+              >
+                <Save className="mic-btn" />
+              </button>
+
+              <button 
+                onClick={() => setIsPreviewVisible(true)} 
+                className="mic" 
+                title="Preview"
+              >
+                <Eye className="mic-btn" />
+              </button>
+
+              <button 
+                onClick={handleExportToDoc} 
+                className="mic" 
+                title="Export to Word File"
+              >
+                <FileText className="mic-btn" />
+              </button>
             </div>
-          )}
-          <div>
-            <button 
-              onClick={handleSave} 
-              className="mic" 
-              title={currentDocId ? "Update Document" : "Save Document"}
-              disabled={isLoading}
-            >
-              <Save className="mic-btn" />
-            </button>
           </div>
-          <div>
-            <button onClick={handlePreviewClick} className="mic" title="Preview"><Eye className="mic-btn" /></button>
-          </div>
-         <button onClick={handleExportToDoc} className="mic" title="Export to word File"><FileText className="mic-btn" /></button>
-        </div>
         </div>
       )}
 
-  {/* File name modal */}
-  {isFileNameModalVisible && (
-    <div className="file-name-modal">
-      <div className="modal-content">
-        <h2>Enter File Name</h2>
-        <input
-          type="text"
-          value={fileName}
-          onChange={(e) => setFileName(e.target.value)}
-          placeholder="Enter file name"
-        />
-        <button onClick={handleFileNameSubmit}>Save</button>
-        <button onClick={() => setIsFileNameModalVisible(false)}>Cancel</button>
-      </div>
-    </div>
-  )}
+      {/* File Name Modal */}
+      {isFileNameModalVisible && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96">
+            <h2 className="text-xl font-bold mb-4">Enter File Name</h2>
+            <input
+              type="text"
+              value={fileName}
+              onChange={(e) => setFileName(e.target.value)}
+              placeholder="Enter file name"
+              className="w-full p-2 border rounded mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setIsFileNameModalVisible(false)}
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (fileName) {
+                    setIsFileNameModalVisible(false);
+                    handleSave();
+                  } else {
+                    alert('Please enter a file name');
+                  }
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-  {/* Preview Modal */}
-  {isPreviewVisible && (
-    <div className="preview-modal">
-      <div className="preview-content">
-        <button onClick={handlePreviewClick} className="close-preview">
-          Close
-        </button>
-        <h2>Preview</h2>
-        <div dangerouslySetInnerHTML={{ __html: content }} />
-      </div>
+      {/* Preview Modal */}
+      {isPreviewVisible && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto relative">
+            <button
+              onClick={() => setIsPreviewVisible(false)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100"
+            >
+              ×
+            </button>
+            <h2 className="text-2xl font-bold mb-4">Preview</h2>
+            <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: allContent }} />
+          </div>
+        </div>
+      )}
+
     </div>
-  )}
-</div>
   );
 });
 
