@@ -1,12 +1,13 @@
 import React, { useRef, useState, forwardRef, useEffect } from 'react';
-import { Eye, FileText, Mic, Save, StopCircle } from 'lucide-react';
+import { Eye, FileText, KeyRound, Mic, Save, StopCircle } from 'lucide-react';
 import { Navbar } from '../Navbar/Navbar';
 import { baseUrl } from '../Config';
 import { useLocation } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import 'react-quill/dist/quill.snow.css'; // Default React Quill theme
-import './customQuill.css'; // Your custom CSS
+import 'react-quill/dist/quill.snow.css'; 
+import './customQuill.css'; 
+import OpenAiKeyManager from '../Pages/OpenAiKeyManager';
 
 
 const Home = forwardRef(() => {
@@ -25,6 +26,8 @@ const Home = forwardRef(() => {
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
+  const [showKeyInput, setShowKeyInput] = useState();
+  const [input, setInput] = useState();
 
   // Initialize content from location state
   useEffect(() => {
@@ -355,7 +358,7 @@ const Home = forwardRef(() => {
       }
     } catch (error) {
       console.error('Error sending audio to ASR:', error);
-      alert('Error processing audio: ' + error.message);
+      alert('Plese Enter Your Correct Open AI API Key');
     }
   };
 
@@ -402,6 +405,40 @@ const Home = forwardRef(() => {
       setIsLoading(false);
     }
   };
+
+  const handleOpenAiKey = async () => {
+    try {
+      // Validate input
+      if (!input || typeof input !== 'string') {
+        alert('Invalid input. Please provide a valid OpenAI key.');
+        return;
+      }
+  
+      // Make the API request
+      const response = await fetch(`${baseUrl}/api/open-ai`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ input }),
+      });
+  
+      // Handle response
+      if (response.ok) {
+        alert('OpenAI key successfully stored!');
+      } else {
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        alert('Failed to store OpenAI key. Please try again.');
+      }
+    } catch (error) {
+      // Handle network or other unexpected errors
+      console.error('An error occurred:', error);
+      alert('An unexpected error occurred. Please check your network connection.');
+    }
+  };
+  
+  
 
   return (
     <div className="form-field">
@@ -488,6 +525,14 @@ const Home = forwardRef(() => {
               >
                 <FileText className="mic-btn" />
               </button>
+              <button 
+                onClick={() => setShowKeyInput(!showKeyInput)} 
+                className="mic" 
+                title="Enter Your Open AI Key"
+              >
+                <KeyRound className="mic-btn" />
+              </button>
+              
             </div>
           </div>
         </div>
@@ -546,6 +591,22 @@ const Home = forwardRef(() => {
         </div>
       )}
 
+{showKeyInput && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div className="openAiTextarea bg-white p-4 rounded shadow-lg">
+      <div className="flex justify-between mb-2">
+        <p>Enter Your Open AI KEY Here</p>
+        <p
+          onClick={() => setShowKeyInput(false)}
+          className="cursor-pointer text-white flex justify-center items-center w-8 h-8 bg-black rounded-full"
+        >
+          X
+        </p>
+      </div>
+      <OpenAiKeyManager />
+    </div>
+  </div>
+)}
     </div>
   );
 });

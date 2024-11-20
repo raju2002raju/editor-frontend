@@ -13,3 +13,42 @@
   .ql-editor{
     line-height: 2.2;
   }
+
+  .openAiTextarea{
+    background-color: #e0e0e0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    width: 500px;
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .inputfield{
+    width: 100%;
+    padding: 10px;
+    outline: none;
+    border-radius: 10px;
+  }
+
+  .btn{
+    padding: 10px 20px;
+    color: #fff;
+    border-radius: 5px;
+
+  }
+
+  .save-btn{
+    background-color: rgb(78, 180, 78);
+    margin-right: 10px;
+  }
+
+  .cancel-btn{
+    background-color: gray;
+  }
+
+  .remove-btn{
+    background-color: rgb(71, 158, 193);
+    margin-right: 10px;
+  }

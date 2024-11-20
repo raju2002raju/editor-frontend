@@ -42,7 +42,7 @@ const LoginPage = () => {
       alert('Please enter OTP');
       return;
     }
-
+  
     try {
       const response = await fetch(`${baseUrl}/api/verify-otp`, {
         method: 'POST',
@@ -51,11 +51,13 @@ const LoginPage = () => {
         },
         body: JSON.stringify({ email, otp }),
       });
-
+  
       if (response.ok) {
+        const data = await response.json();
+        // Save token in localStorage
+        localStorage.setItem('token', data.token); // Assuming your API returns a token
         alert('Login successful!');
-        navigate('/home')
-        // Add your redirect logic here
+        navigate('/home');
       } else {
         alert('Invalid OTP');
       }
@@ -127,4 +129,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default LoginPage; 

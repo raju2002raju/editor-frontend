@@ -1,20 +1,30 @@
 import React from 'react'
-import {BrowserRouter, Routes, Route} from 'react-router-dom'
+import { Routes, Route} from 'react-router-dom'
 import LoginPage from './Components/LoginPage/LoginPage'
 import './App.css'
-import Home from './Components/Home/Home'
 import MyDocument from './Components/MyDocument/MyDocument'
+import NotFound from './Components/NotFound'
+import ProtectedRoute from './Components/Pages/ProtectedRoute'
+import Home from './Components/Home/Home'
 
 const App = () => {
   return (
-    <BrowserRouter>
     <Routes>
-      <Route  path='/' element={<LoginPage/>}/>
-      <Route path='/my-documents' element={<MyDocument/>} />
-      <Route path='/home' element={<Home/>} />
+      <Route path="/" element={<LoginPage />} />
+      <Route path="/home" element={
+        <ProtectedRoute>
+          <Home />
+        </ProtectedRoute>
+      } />
+      <Route path="/my-documents" element={
+        <ProtectedRoute>
+          <MyDocument/>
+        </ProtectedRoute>
+      } />
+      <Route path="/404" element={<NotFound />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
-    </BrowserRouter>
-  )
+  );
 }
 
 export default App
