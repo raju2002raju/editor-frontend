@@ -8,6 +8,7 @@ import 'react-quill/dist/quill.snow.css';
 import 'react-quill/dist/quill.snow.css'; 
 import './customQuill.css'; 
 import OpenAiKeyManager from '../Pages/OpenAiKeyManager';
+import PromptUpdate from '../PromptUpdate/PromptUpdate';
 
 
 const Home = forwardRef(() => {
@@ -28,7 +29,8 @@ const Home = forwardRef(() => {
   const timerRef = useRef(null);
   const [showKeyInput, setShowKeyInput] = useState();
   const [input, setInput] = useState();
-
+  const [isShowPrompt, setIshShowPrompt] = useState();
+  
   // Initialize content from location state
   useEffect(() => {
     if (location.state?.documentContent) {
@@ -75,7 +77,7 @@ const Home = forwardRef(() => {
     }
 
     document.body.removeChild(tempDiv);
-    return pages.length > 0 ? pages : [''];  // Ensure at least one page exists
+    return pages.length > 0 ? pages : ['']; 
   };
 
   // Update pages when content changes
@@ -89,8 +91,6 @@ const Home = forwardRef(() => {
     // Update the content of the current page
     const updatedPages = [...pages];
     updatedPages[selectedPage] = newContent;
-
-    // Combine all pages into complete document
     const combinedContent = updatedPages.join('');
     setAllContent(combinedContent);
 
@@ -532,8 +532,8 @@ const Home = forwardRef(() => {
               >
                 <KeyRound className="mic-btn" />
               </button>
-              
             </div>
+              <button onClick={() => setIshShowPrompt(true)} className='bg-blue-500 text-white p-3'> Update Prompt </button>
           </div>
         </div>
       )}
@@ -607,8 +607,22 @@ const Home = forwardRef(() => {
     </div>
   </div>
 )}
+
+{isShowPrompt && (
+        <div 
+          className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIshShowPrompt(false);
+            }
+          }}
+        >
+          <PromptUpdate onClose={() => setIshShowPrompt(false)} />
+        </div>
+      )}
     </div>
   );
 });
 
 export default Home;
+ 
