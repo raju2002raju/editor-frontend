@@ -26,7 +26,7 @@ const MyDocument = () => {
     setIsLoading(true);
     try {
       const response = await axios.get(`${baseUrl}/api/documents/${docId}`);
-      navigate('/home', {
+      navigate('/', {
         state: {
           documentContent: response.data.content,
           documentName: docName,
