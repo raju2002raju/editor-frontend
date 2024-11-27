@@ -10,7 +10,7 @@ import Home from './Components/Home/Home'
 const App = () => {
   return (
     <Routes>
-      <Route path="/home" element={<Home /> } />
+      <Route path="/" element={<Home /> } />
       <Route path="/my-documents" element={<MyDocument/>} />
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<NotFound />} />
