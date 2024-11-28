@@ -16,17 +16,21 @@ const PromptUpdate = ({ onClose }) => {
       
       if (response.ok) {
         const data = await response.json();
-        setStoredKey(data.prompt || null);
+        const fetchedPrompt = data.prompt || '';
+        setStoredKey(fetchedPrompt);
+        setValue(fetchedPrompt); // Populate textarea with stored key
         setError(null);
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'Failed to fetch stored prompt');
         setStoredKey(null);
+        setValue('');
       }
     } catch (error) {
       console.error('Error fetching stored key:', error);
       setError('Network error. Please check your connection.');
       setStoredKey(null);
+      setValue('');
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +80,8 @@ const PromptUpdate = ({ onClose }) => {
 
       if (response.ok) {
         alert('Prompt successfully removed!');
-        await fetchStoredKey(); // Refresh stored key status
+        setStoredKey(null);
+        setValue(''); // Clear the textarea
         setError(null);
       } else {
         const errorData = await response.json();
@@ -119,7 +124,7 @@ const PromptUpdate = ({ onClose }) => {
         value={value} 
         onChange={(e) => setValue(e.target.value)} 
         className='border p-3 w-full outline-none h-96 overflow-auto mb-4' 
-        placeholder={value === '' ? (storedKey || 'Enter your prompt') : ''} 
+        placeholder='Enter your prompt'
       />
 
       <div className="flex space-x-4">
