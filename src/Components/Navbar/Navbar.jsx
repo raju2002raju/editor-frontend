@@ -36,7 +36,7 @@ export const Navbar = () => {
             <div className="ml-4 flex space-x-8">
               <Link 
                 to="/home" 
-                className={`text-sm font-medium cursor-pointer ${location.pathname === '/home' ? 'text-blue-600' : 'text-gray-500'}`}
+                className={`text-sm font-medium cursor-pointer ${location.pathname === '/' ? 'text-blue-600' : 'text-gray-500'}`}
               >
                 GENERATE DOCUMENT
               </Link>
